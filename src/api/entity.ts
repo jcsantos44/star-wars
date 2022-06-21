@@ -17,9 +17,14 @@ export const entity = {
         await r.getResults(undefined, undefined, id, undefined);
         return r.results;
     },
-    async getSubEntity(urls: string[]) {
+    async getSubEntity(urls: string[], entityType: string) {
         const r = request;
         await r.getResults(undefined, urls, undefined, undefined);
+        r.results.forEach((e: any) => {
+            const id = this.getIdFromUrl(e.url);
+            const imageUrl = this.getImageUrl(Number(id), entityType);
+            e.imageUrl = imageUrl;
+        });
         return r.results;
     },
     async fetchEntityList(page: number, entityType: string) {
@@ -33,105 +38,129 @@ export const entity = {
     },
     getIdFromUrl(url: string) {
         const str: string[] = url.split('/');
-        console.log(str);
         str.pop();
         const id = str.pop();
-        console.log(id);
         return id;
     },
+    getEntityTypeFromUrl(url: string) {
+        const str: string[] = url.split('/');
+        return str[str.length - 3];
+    },
     getImageUrl(id: number, entityType: string) {
-        const endpoint = entityType === 'people' ? 'characters' : 'characters';
+        const endpoint = entityType === 'people' ? 'characters' : entityType;
         const url = `https://starwars-visualguide.com/assets/img/${endpoint}/${id}.jpg`;
         return url;
     },
     async fetchPerson(param: number|object) {
         let person: any;
-        console.log('param', param);
         if (typeof param === 'number') {
             person = await this.getEntity(param, 'people');
         } else if (typeof param === 'object') {
             person = param;
         }
-        const homeworld = await this.getSubEntity([person.homeworld]);
-        const films = await this.getSubEntity([...person.films]);
-        const species = await this.getSubEntity([...person.species]);
-        const vehicles = await this.getSubEntity([...person.vehicles]);
-        const starships = await this.getSubEntity([...person.starships]);
-        const imageUrl = await this.getImageUrl(person.id, 'people');
-        console.log(imageUrl);
+        const homeworld = await this.getSubEntity([person.homeworld], 'planets');
+        const films = await this.getSubEntity([...person.films], 'films');
+        const species = await this.getSubEntity([...person.species], 'species');
+        const vehicles = await this.getSubEntity([...person.vehicles], 'vehicles');
+        const starships = await this.getSubEntity([...person.starships], 'starships');
+        const id = this.getIdFromUrl(person.url);
+        const imageUrl = await this.getImageUrl(Number(id), 'people');
         const fullPerson = {
             ...person,
-            homeworld,
-            films,
-            species,
-            vehicles,
-            starships,
+            subentities: {
+                homeworld,
+                species,
+                films,
+                vehicles,
+                starships,
+            },
             imageUrl,
         };
         return fullPerson;
     },
     async fetchStarship(id: number) {
-        const ship = await this.getEntity(id, 'starship');
-        const pilots = await this.getSubEntity([...ship.pilots]);
-        const films = await this.getSubEntity([...ship.films]);
+        const ship = await this.getEntity(id, 'starships');
+        const pilots = await this.getSubEntity([...ship.pilots], 'people');
+        const films = await this.getSubEntity([...ship.films], 'films');
+        const imageUrl = await this.getImageUrl(Number(id), 'starships');
         const fullShip = {
             ...ship,
-            pilots,
-            films,
+            subentities: {
+                pilots,
+                films,
+            },
+            imageUrl,
         };
         return fullShip;
     },
     async fetchPlanet(id: number) {
-        const planet = await this.getEntity(id, 'planet');
-        const residents = await this.getSubEntity([...planet.residents]);
-        const films = await this.getSubEntity([...planet.films]);
+        const planet = await this.getEntity(id, 'planets');
+        const residents = await this.getSubEntity([...planet.residents], 'people');
+        const films = await this.getSubEntity([...planet.films], 'films');
+        const imageUrl = await this.getImageUrl(Number(id), 'planets');
         const fullPlanet = {
             ...planet,
-            residents,
-            films,
+            subentities: {
+                residents,
+                films,
+            },
+            imageUrl,
         };
         return fullPlanet;
     },
     async fetchVehicle(id: number) {
         const vehicle = await this.getEntity(id, 'vehicle');
-        const pilots = await this.getSubEntity([...vehicle.pilots]);
-        const films = await this.getSubEntity([...vehicle.films]);
+        const pilots = await this.getSubEntity([...vehicle.pilots], 'people');
+        const films = await this.getSubEntity([...vehicle.films], 'films');
+        const imageUrl = await this.getImageUrl(Number(id), 'vehicles');
         const fullVehicle = {
             ...vehicle,
-            pilots,
-            films,
+            subentities: {
+                pilots,
+                films,
+            },
+            imageUrl,
         };
         return fullVehicle;
     },
     async fetchSpecies(id: number) {
         const species = await this.getEntity(id, 'species');
-        const homeworld = await this.getSubEntity([...species.homeworld]);
-        const people = await this.getSubEntity([...species.people]);
-        const films = await this.getSubEntity([...species.films]);
+        let homeworld;
+        if (species?.homeworld) {
+            homeworld = await this.getSubEntity([species.homeworld], 'planets');
+        }
+        const people = await this.getSubEntity([...species.people], 'people');
+        const films = await this.getSubEntity([...species.films], 'films');
+        const imageUrl = await this.getImageUrl(Number(id), 'species');
         const fullSpecies = {
             ...species,
-            homeworld,
-            people,
-            films,
+            subentities: {
+                homeworld,
+                people,
+                films,
+            },
+            imageUrl,
         };
         return fullSpecies;
     },
     async fetchFilm(id: number) {
-        const film = await this.getEntity(id, 'film');
-        const people = await this.getSubEntity([...film.people]);
-        const films = await this.getSubEntity([...film.films]);
-        const planets = await this.getSubEntity([...film.planets]);
-        const starships = await this.getSubEntity([...film.starships]);
-        const vehicles = await this.getSubEntity([...film.vehicles]);
-        const species = await this.getSubEntity([...film.species]);
+        const film = await this.getEntity(id, 'films');
+        const people = await this.getSubEntity([...film.characters], 'people');
+        const planets = await this.getSubEntity([...film.planets], 'planets');
+        const starships = await this.getSubEntity([...film.starships], 'starships');
+        const vehicles = await this.getSubEntity([...film.vehicles], 'vehicles');
+        const species = await this.getSubEntity([...film.species], 'species');
+        const imageUrl = await this.getImageUrl(Number(id), 'films');
         const fullFilm = {
             ...film,
-            people,
-            films,
-            planets,
-            starships,
-            vehicles,
-            species,
+            subentities: {
+                people,
+                planets,
+                starships,
+                vehicles,
+                species,
+            },
+            imageUrl,
         };
         return fullFilm;
     },

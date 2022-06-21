@@ -5,6 +5,7 @@ import App from './App.vue';
 import 'roboto-fontface/css/roboto/roboto-fontface.css';
 import '@mdi/font/css/materialdesignicons.css';
 import i18n from './i18n';
+import router from './router';
 
 const vuetify = new Vuetify({
     theme: {
@@ -31,5 +32,6 @@ Vue.config.productionTip = false;
 new Vue({
     vuetify,
     i18n,
+    router,
     render: (h) => h(App),
 }).$mount('#app');
